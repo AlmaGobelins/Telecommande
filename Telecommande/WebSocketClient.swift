@@ -19,126 +19,143 @@ class WebSocketClient: ObservableObject {
     static let shared: WebSocketClient = WebSocketClient()
     
     var routes = [String: NWWebSocket]()
-    var ipAdress: String = "192.168.0.132:8080"
+    var ipAdress: String = "192.168.1.99:8080"
     
-    @Published var devicesStatus: [String: Bool] = [:]  // Ajout de la propriété pour l'état des périphériques
+    @Published var devicesStatus: [String: Bool] = [:]
+    @Published var isConnected: Bool = false
+    
+    private var reconnectTimer: Timer?
+    private let reconnectInterval: TimeInterval = 5.0
     
     func connectTo(route: String) -> Bool {
         let socketURL = URL(string: "ws://\(ipAdress)/\(route)")
         if let url = socketURL {
             let socket = NWWebSocket(url: url, connectAutomatically: true)
-            
             socket.delegate = self
             socket.connect()
             routes[route] = socket
-            print("Connected to WSServer @ \(url) -- Routes: \(routes)")
+            print("Attempting to connect to WSServer @ \(url)")
             return true
         }
-        
         return false
     }
     
-    func sendMessage(_ string: String, toRoute route: String) -> Void {
+    func startReconnectTimer(forRoute route: String) {
+        stopReconnectTimer()
+        reconnectTimer = Timer.scheduledTimer(withTimeInterval: reconnectInterval, repeats: true) { [weak self] _ in
+            guard let self = self, !self.isConnected else { return }
+            print("Attempting to reconnect...")
+            let _ = self.connectTo(route: route)
+        }
+    }
+    
+    func stopReconnectTimer() {
+        reconnectTimer?.invalidate()
+        reconnectTimer = nil
+    }
+    
+    func sendMessage(_ string: String, toRoute route: String) {
         self.routes[route]?.send(string: string)
     }
     
-    func disconnect(route: String) -> Void {
+    func disconnect(route: String) {
         routes[route]?.disconnect()
     }
     
-    func disconnectFromAllRoutes() -> Void {
+    func disconnectFromAllRoutes() {
+        stopReconnectTimer()
         for route in routes {
             route.value.disconnect()
         }
-        
+        routes.removeAll()
         print("Disconnected from all routes.")
     }
     
     func updateDevicesStatus(from message: String) {
-        var status: [String: Bool] = [:]
+        var newStatus: [String: Bool] = [:]
         
-        // Séparer le message en lignes
         let lines = message.split(separator: "\n")
-        print("Lines: \(lines)")  // Affiche les lignes séparées
         
         for line in lines {
             let components = line.split(separator: ":")
-            print("Components: \(components)")  // Affiche les composants de chaque ligne
-            
             if components.count == 2 {
-                // Nettoyer les espaces avant et après les valeurs
                 let device = components.first?.trimmingCharacters(in: .whitespaces)
                 let isConnectedString = components.last?.trimmingCharacters(in: .whitespaces)
                 
                 if let device = device, let isConnectedString = isConnectedString {
-                    // Convertir "Connecté" en true et "Déconnecté" en false
-                    let isConnected: Bool
-                    if isConnectedString == "Connecté" {
-                        isConnected = true
-                    } else if isConnectedString == "Déconnecté" {
-                        isConnected = false
-                    } else {
-                        continue  // Ignore les valeurs inconnues
-                    }
-                    
-                    status[device] = isConnected
+                    let isConnected = isConnectedString == "Connecté"
+                    newStatus[device] = isConnected
                 }
             }
         }
         
-        print("Parsed Status: \(status)")  // Affiche le statut après le parsing
-        
-        // Mettre à jour la propriété sur le thread principal
-        DispatchQueue.main.async {
-            self.devicesStatus = status
+        // Vérifier s'il y a des changements avant de mettre à jour
+        DispatchQueue.main.async { [weak self] in
+            guard let self = self else { return }
+            if !newStatus.isEmpty && !newStatus.elementsEqual(self.devicesStatus, by: { $0.key == $1.key && $0.value == $1.value }) {
+                print("Updating status: \(newStatus)")
+                self.devicesStatus = newStatus
+            }
         }
     }
-    
-    
 }
 
 extension WebSocketClient: WebSocketConnectionDelegate {
-    
     func webSocketDidConnect(connection: WebSocketConnection) {
-        // Respond to a WebSocket connection event
         print("WebSocket connected")
+        DispatchQueue.main.async { [weak self] in
+            self?.isConnected = true
+            self?.stopReconnectTimer()
+        }
     }
     
     func webSocketDidDisconnect(connection: WebSocketConnection,
-                                closeCode: NWProtocolWebSocket.CloseCode, reason: Data?) {
-        // Respond to a WebSocket disconnection event
+                              closeCode: NWProtocolWebSocket.CloseCode,
+                              reason: Data?) {
         print("WebSocket disconnected")
+        DispatchQueue.main.async { [weak self] in
+            self?.isConnected = false
+            self?.startReconnectTimer(forRoute: "telecommande")
+        }
     }
     
     func webSocketViabilityDidChange(connection: WebSocketConnection, isViable: Bool) {
-        // Respond to a WebSocket connection viability change event
-        print("WebSocket viability: \(isViable)")
+        print("WebSocket viability changed: \(isViable)")
+        if !isViable {
+            DispatchQueue.main.async { [weak self] in
+                self?.isConnected = false
+                self?.startReconnectTimer(forRoute: "telecommande")
+            }
+        }
     }
     
     func webSocketDidAttemptBetterPathMigration(result: Result<WebSocketConnection, NWError>) {
-        // Respond to when a WebSocket connection migrates to a better network path
-        // (e.g. A device moves from a cellular connection to a Wi-Fi connection)
+        // Gérer la migration de chemin si nécessaire
     }
     
     func webSocketDidReceiveError(connection: WebSocketConnection, error: NWError) {
-        // Respond to a WebSocket error event
         print("WebSocket error: \(error)")
+        DispatchQueue.main.async { [weak self] in
+            self?.isConnected = false
+            self?.startReconnectTimer(forRoute: "telecommande")
+        }
     }
     
     func webSocketDidReceivePong(connection: WebSocketConnection) {
-        // Respond to a WebSocket connection receiving a Pong from the peer
         print("WebSocket received Pong")
     }
     
     func webSocketDidReceiveMessage(connection: WebSocketConnection, string: String) {
-        // Traitement des messages reçus pour mettre à jour l'état
         print("WebSocket received message: \(string)")
         
-        updateDevicesStatus(from: string)
+        if string == "ping" {
+            self.sendMessage("pong", toRoute: "telecommande")
+        } else {
+            updateDevicesStatus(from: string)
+        }
     }
     
     func webSocketDidReceiveMessage(connection: WebSocketConnection, data: Data) {
-        // Respond to a WebSocket connection receiving a binary `Data` message
-        print("WebSocket received Data message \(data)")
+        print("WebSocket received Data message")
     }
 }

@@ -1,31 +1,47 @@
 import SwiftUI
 
 struct ContentView: View {
-    @ObservedObject var wsClient = WebSocketClient.shared
+    @StateObject var wsClient = WebSocketClient.shared
+    private let route = "telecommande"
+    
+    struct DeviceStatus: Identifiable, Equatable {
+        let id: String
+        let name: String
+        let isConnected: Bool
+        
+        static func == (lhs: DeviceStatus, rhs: DeviceStatus) -> Bool {
+            return lhs.id == rhs.id && lhs.name == rhs.name && lhs.isConnected == rhs.isConnected
+        }
+    }
+    
+    @State private var currentStatuses: [DeviceStatus] = []
+    
+    private var newDeviceStatuses: [DeviceStatus] {
+        wsClient.devicesStatus.map { device in
+            DeviceStatus(
+                id: device.key,
+                name: device.key.capitalized,
+                isConnected: device.value
+            )
+        }.sorted { $0.name < $1.name }
+    }
     
     var body: some View {
-        VStack {
-            Text("État des sessions :")
-                .font(.headline)
-                .padding()
-            
-            // Liste des périphériques avec leur état
-            List(wsClient.devicesStatus.keys.sorted(), id: \.self) { device in
-                HStack {
-                    Text(device.capitalized)
-                    Spacer()
-                    Text(wsClient.devicesStatus[device]! ? "Connecté" : "Déconnecté")
-                        .foregroundColor(wsClient.devicesStatus[device]! ? .green : .red)
-                }
+        List(currentStatuses) { device in
+            HStack {
+                Text(device.name)
+                Spacer()
+                Circle()
+                    .fill(device.isConnected ? Color.green : Color.red)
+                    .frame(width: 12, height: 12)
+                Text(device.isConnected ? "Connecté" : "Déconnecté")
             }
-            .frame(maxHeight: 300) // Limiter la taille de la liste
-            
-            Spacer()
         }
         .onAppear {
-            // Connexion au WebSocket sur le serveur
-            let _ = wsClient.connectTo(route: "telecommande")
-            wsClient.sendMessage("Telecommande up", toRoute: "telecommande")
+            let _ = wsClient.connectTo(route: route)
+        }
+        .onChange(of: wsClient.devicesStatus) { _ in
+            currentStatuses = newDeviceStatuses
         }
         .padding()
     }
