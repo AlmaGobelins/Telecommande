@@ -8,12 +8,16 @@
 import SwiftUI
 
 struct ContentView: View {
+    
+    @ObservedObject var wsClient = WebSocketClient.shared
+    
     var body: some View {
         VStack {
-            Image(systemName: "globe")
-                .imageScale(.large)
-                .foregroundStyle(.tint)
-            Text("Hello, world!")
+            Text("Liste des devices :")
+            Text(wsClient.receivedMessage)
+        }.onAppear{
+            wsClient.connectTo(route: "telecommande")
+            wsClient.sendMessage("Telecommande", toRoute: "telecommande")
         }
         .padding()
     }

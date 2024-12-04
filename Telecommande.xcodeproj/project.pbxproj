@@ -6,6 +6,10 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		AD1B64DA2CFF515A00F11F30 /* NWWebSocket in Frameworks */ = {isa = PBXBuildFile; productRef = AD1B64D92CFF515A00F11F30 /* NWWebSocket */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXFileReference section */
 		AD1B64C72CFF511300F11F30 /* Telecommande.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Telecommande.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
@@ -23,6 +27,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				AD1B64DA2CFF515A00F11F30 /* NWWebSocket in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -65,6 +70,7 @@
 			);
 			name = Telecommande;
 			packageProductDependencies = (
+				AD1B64D92CFF515A00F11F30 /* NWWebSocket */,
 			);
 			productName = Telecommande;
 			productReference = AD1B64C72CFF511300F11F30 /* Telecommande.app */;
@@ -94,6 +100,9 @@
 			);
 			mainGroup = AD1B64BE2CFF511300F11F30;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				AD1B64D82CFF515A00F11F30 /* XCRemoteSwiftPackageReference "NWWebSocket" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = AD1B64C82CFF511300F11F30 /* Products */;
 			projectDirPath = "";
@@ -324,6 +333,25 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		AD1B64D82CFF515A00F11F30 /* XCRemoteSwiftPackageReference "NWWebSocket" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/pusher/NWWebSocket";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 0.5.4;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		AD1B64D92CFF515A00F11F30 /* NWWebSocket */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = AD1B64D82CFF515A00F11F30 /* XCRemoteSwiftPackageReference "NWWebSocket" */;
+			productName = NWWebSocket;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = AD1B64BF2CFF511300F11F30 /* Project object */;
 }
