@@ -23,6 +23,10 @@ struct ContentView: View {
                     Spacer()
                     Text(wsClient.devicesStatus[device]! ? "Connecté" : "Déconnecté")
                         .foregroundColor(wsClient.devicesStatus[device]! ? .green : .red)
+                    Spacer()
+                    Button("Trigger action") {
+                        //custom action for each route/device
+                    }
                 }
             }
             .frame(maxHeight: 300) // Limiter la taille de la liste
@@ -34,6 +38,8 @@ struct ContentView: View {
                 let _ = wsClient.connectTo(route: route)
                 wsClient.sendMessage("Telecommande up", toRoute: route)
             }
+            
+            Spacer()
         }
         .onChange(of: ip) {
             wsClient.ipAdress = ip
