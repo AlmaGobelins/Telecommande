@@ -2,9 +2,16 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var wsClient = WebSocketClient.shared
-    
+    @State private var ip: String = "192.168.1.100:8080"
+    @State private var route: String = "telecommande"
     var body: some View {
         VStack {
+            
+            HStack {
+                TextField("IP:", text: $ip)
+                Spacer()
+                TextField("Route:", text: $route)
+            }
             Text("État des sessions :")
                 .font(.headline)
                 .padding()
@@ -21,11 +28,15 @@ struct ContentView: View {
             .frame(maxHeight: 300) // Limiter la taille de la liste
             
             Spacer()
+            
+            Button("Connect") {
+                // Connexion au WebSocket sur le serveur
+                let _ = wsClient.connectTo(route: route)
+                wsClient.sendMessage("Telecommande up", toRoute: route)
+            }
         }
-        .onAppear {
-            // Connexion au WebSocket sur le serveur
-            let _ = wsClient.connectTo(route: "telecommande")
-            wsClient.sendMessage("Telecommande up", toRoute: "telecommande")
+        .onChange(of: ip) {
+            wsClient.ipAdress = ip
         }
         .padding()
     }

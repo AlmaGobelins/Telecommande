@@ -19,7 +19,7 @@ class WebSocketClient: ObservableObject {
     static let shared: WebSocketClient = WebSocketClient()
     
     var routes = [String: NWWebSocket]()
-    var ipAdress: String = "192.168.0.132:8080"
+    var ipAdress: String = "192.168.1.100:8080"
     
     @Published var devicesStatus: [String: Bool] = [:]  // Ajout de la propriété pour l'état des périphériques
     
@@ -135,6 +135,9 @@ extension WebSocketClient: WebSocketConnectionDelegate {
         print("WebSocket received message: \(string)")
         
         updateDevicesStatus(from: string)
+        if string == "ping" {
+            self.sendMessage("pong", toRoute: "testPing")
+        }
     }
     
     func webSocketDidReceiveMessage(connection: WebSocketConnection, data: Data) {
