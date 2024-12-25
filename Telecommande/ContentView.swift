@@ -2,8 +2,8 @@ import SwiftUI
 
 struct ContentView: View {
     @ObservedObject var wsClient = WebSocketClient.shared
-    @State private var ip: String = "192.168.1.100:8080"
-    @State private var route: String = "telecommande"
+    @State private var ip: String = "192.168.1.22:8080"
+    @State private var route: String = "test"
     var body: some View {
         VStack {
             
@@ -21,11 +21,13 @@ struct ContentView: View {
                 HStack {
                     Text(device.capitalized)
                     Spacer()
-                    Text(wsClient.devicesStatus[device]! ? "Connecté" : "Déconnecté")
-                        .foregroundColor(wsClient.devicesStatus[device]! ? .green : .red)
+                    let isConnected = wsClient.devicesStatus[device]!.0
+                    Text(isConnected ? "Connecté" : "Déconnecté")
+                        .foregroundColor(isConnected ? .green : .red)
                     Spacer()
                     Button("Trigger action") {
                         //custom action for each route/device
+                        triggerActionFor(wsClient.devicesStatus[device]!.1)
                     }
                 }
             }
@@ -45,6 +47,13 @@ struct ContentView: View {
             wsClient.ipAdress = ip
         }
         .padding()
+    }
+}
+
+func triggerActionFor(_ callbackName: String) {
+    switch callbackName {
+    case "test" : print("test")
+    default: print("test")
     }
 }
 
